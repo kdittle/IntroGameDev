@@ -70,35 +70,35 @@ bool Load_Image()
 {
 	bool success = true;
 
-	Key_Pressed_Surfaces[KEY_PRESS_SURFACE_DEFAULT] = Load_Surface("Images/background.png");
+	Key_Pressed_Surfaces[KEY_PRESS_SURFACE_DEFAULT] = Load_Surface("IntroGameDev/background.bmp");
 	if(imageSurface == NULL)
 	{
 		printf("Unable to load default image %s! SDL_Error: %s\n", SDL_GetError());
 		success = false;
 	}
 
-	Key_Pressed_Surfaces[KEY_PRESS_SURFACE_UP] = Load_Surface("Images/up.png");
+	Key_Pressed_Surfaces[KEY_PRESS_SURFACE_UP] = Load_Surface("IntroGameDev/up.bmp");
 	if(imageSurface == NULL)
 	{
 		printf("Unable to load up image %s! SDL_Error: %s\n", SDL_GetError());
 		success = false;
 	}
 
-	Key_Pressed_Surfaces[KEY_PRESS_SURFACE_DOWN] = Load_Surface("Images/down.png");
+	Key_Pressed_Surfaces[KEY_PRESS_SURFACE_DOWN] = Load_Surface("IntroGameDev/down.bmp");
 	if(imageSurface == NULL)
 	{
 		printf("Unable to load down image %s! SDL_Error: %s\n", SDL_GetError());
 		success = false;
 	}
 
-	Key_Pressed_Surfaces[KEY_PRESS_SURFACE_LEFT] = Load_Surface("Images/left.png");
+	Key_Pressed_Surfaces[KEY_PRESS_SURFACE_LEFT] = Load_Surface("IntroGameDev/left.bmp");
 	if(imageSurface == NULL)
 	{
 		printf("Unable to load left %s! SDL_Error: %s\n", SDL_GetError());
 		success = false;
 	}
 
-	Key_Pressed_Surfaces[KEY_PRESS_SURFACE_RIGHT] = Load_Surface("Images/right.png");
+	Key_Pressed_Surfaces[KEY_PRESS_SURFACE_RIGHT] = Load_Surface("IntroGameDev/right.bmp");
 	if(imageSurface == NULL)
 	{
 		printf("Unable to load right image %s! SDL_Error: %s\n", SDL_GetError());
