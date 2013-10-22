@@ -124,17 +124,17 @@ void Close()
 
 void InputHandler()
 {
-	bool quit = false;
+	bool run = true;
 
 	SDL_Event event;
 
-	while(!quit)
+	while(run)
 	{
 		while(SDL_PollEvent(&event) != 0)
 		{
 			if(event.type == SDL_QUIT)
 			{
-				quit = true;
+				run = false;
 			}
 		}
 	}
@@ -167,17 +167,17 @@ int main()
 		}
 		else
 		{
-			bool quit = false;
+			bool run = true;
 
 			SDL_Event event;
 
-			while(!quit)
+			while(run)
 			{
 				while(SDL_PollEvent(&event) != 0)
 				{
 					if(event.type == SDL_QUIT)
 					{
-						quit = true;
+						run = false;
 					}
 
 					if(event.type == SDL_KEYDOWN)
