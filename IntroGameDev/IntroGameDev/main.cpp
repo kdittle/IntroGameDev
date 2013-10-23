@@ -1,5 +1,6 @@
 #include <Windows.h>
 #include <SDL.h>
+#include <SDL_image.h>
 #include <gl/GL.h>
 #include <gl/GLU.h>
 #include <iostream>
@@ -18,9 +19,110 @@
 const int WINDOW_WIDTH = 800;
 const int WINDOW_HEIGHT = 600;
 
+class LTexture
+{
+public:
+	LTexture();
+	~LTexture();
+
+	bool loadFromFile(std::string path);
+
+	void free();
+	void Render(int x, int y);
+
+	int getWidth();
+	int getHeight();
+
+private:
+	SDL_Texture* mTexture;
+
+	int mWidth;
+	int mHeight;
+
+};
+
 SDL_Window* window = NULL;
+SDL_Renderer* renderer = NULL;
 SDL_Surface* screenSurface = NULL;
 SDL_Surface* backgroundImage = NULL;
+SDL_Surface* ballImage = NULL;
+
+LTexture backgroundTexture;
+LTexture ballTexture;
+
+LTexture::LTexture()
+{
+	mTexture = NULL;
+	mWidth = 0;
+	mHeight = 0;
+}
+
+LTexture::~LTexture()
+{
+	free();
+}
+
+bool LTexture::loadFromFile(std::string path)
+{
+	free();
+
+	SDL_Texture* newTexture = NULL;
+
+	SDL_Surface* loadedSurface = IMG_Load(path.c_str());
+	if(loadedSurface == NULL)
+	{
+		printf("Unable to load image %s! SDL_image Error: %s\n", path.c_str(), SDL_GetError());
+	}
+	else
+	{
+		SDL_SetColorKey(loadedSurface, SDL_TRUE, SDL_MapRGB(loadedSurface->format, 0, 0xFF, 0xFF));
+
+		newTexture = SDL_CreateTextureFromSurface(renderer, loadedSurface);
+		if(newTexture == NULL)
+		{
+			printf("Unable to create texture from %s! SDL_Error: %s\n", path.c_str(), SDL_GetError());
+		}
+		else
+		{
+			mWidth = loadedSurface->w;
+			mHeight = loadedSurface->h;
+		}
+
+		SDL_FreeSurface(loadedSurface);
+	}
+
+	mTexture = newTexture;
+
+	return mTexture != NULL;
+
+}
+
+void LTexture::free()
+{
+	if(mTexture != NULL)
+	{
+		SDL_DestroyTexture(mTexture);
+		mTexture = NULL;
+		mWidth = 0;
+		mHeight = 0;
+	}
+}
+
+void LTexture::Render(int xPos, int yPos)
+{
+	SDL_Rect renderQuad = {xPos, yPos, mWidth, mHeight};
+	SDL_RenderCopy(renderer, mTexture, NULL, &renderQuad);
+}
+
+int LTexture::getWidth()
+{
+	return mWidth;
+}
+
+int LTexture::getHeight()
+{
+	return mHeight;
+}
 
 //Creates window and surface.
 bool Initialize()
@@ -44,7 +146,17 @@ bool Initialize()
 		}
 		else
 		{
-			screenSurface = SDL_GetWindowSurface(window);
+			renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+
+			if(renderer == NULL)
+			{
+				printf("Renderer could not be created. SDL_Error: %s\n", SDL_GetError());
+				success = false;
+			}
+			else
+			{
+				SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
+			}
 		}
 	}
 
@@ -55,10 +167,16 @@ bool Load_Image()
 {
 	bool success = true;
 
-	backgroundImage = SDL_LoadBMP("background.bmp");
-	if(backgroundImage == NULL)
+
+	if(!backgroundTexture.loadFromFile("background.png"))
 	{
-		printf("Unable to load default image %s! SDL_Error: %s\n", SDL_GetError());
+		printf("Unable to load background image %s! SDL_Error: %s\n", SDL_GetError());
+		success = false;
+	}
+
+	if(!ballTexture.loadFromFile("ball.png"))
+	{
+		printf("Unable to load ball image %s! SDL_Error: %s\n", SDL_GetError());
 		success = false;
 	}
 
@@ -67,11 +185,13 @@ bool Load_Image()
 
 void Close()
 {
-	SDL_FreeSurface(backgroundImage);
-	backgroundImage= NULL;
+	ballTexture.free();
+	backgroundTexture.free();
 
+	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
 	window = NULL;
+	renderer = NULL;
 
 	SDL_Quit();
 }
@@ -132,9 +252,13 @@ int main()
 						}
 					}
 
+					SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
+					SDL_RenderClear(renderer);
 
-					SDL_BlitSurface(backgroundImage, NULL, screenSurface, NULL);
-					SDL_UpdateWindowSurface(window);
+					backgroundTexture.Render(0,0);
+					ballTexture.Render(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
+
+					SDL_RenderPresent(renderer);
 				}
 			}
 
@@ -143,6 +267,8 @@ int main()
 	}
 
 	Close();
+
+	system("PAUSE");
 
 	return 0;
 }//end main
