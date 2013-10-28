@@ -32,19 +32,6 @@ struct Circle
 	int x, y, r;
 };
 
-class PVector
-{
-public: 
-	float x;
-	float y;
-
-	PVector(float x_, float y_)
-	{
-		x = x_;
-		y = y_;
-	}
-};
-
 class LTexture
 {
 public:
@@ -213,8 +200,6 @@ void Ball::HandleInput(SDL_Event& e)
 			break;
 		case SDLK_RIGHT: mVelX += BALL_VELOCITY; 
 			break;
-		case SDLK_m: BALL_VELOCITY = 10;
-			break;
 		}
 	}
 
@@ -229,8 +214,6 @@ void Ball::HandleInput(SDL_Event& e)
 		case SDLK_LEFT: mVelX += BALL_VELOCITY; 
 			break;
 		case SDLK_RIGHT: mVelX -= BALL_VELOCITY; 
-			break;
-		case SDLK_m: BALL_VELOCITY = 5;
 			break;
 		}
 	}
@@ -257,7 +240,6 @@ void Ball::move(SDL_Rect& square, Circle& circle)
 		mPosY -= mVelY;
 		shiftColliders();
 	}
-
 }
 
 void Ball::Render_Ball()
@@ -423,24 +405,6 @@ void Close()
 	SDL_Quit();
 }
 
-void InputHandler()
-{
-	bool run = true;
-
-	SDL_Event event;
-
-	while(run)
-	{
-		while(SDL_PollEvent(&event) != 0)
-		{
-			if(event.type == SDL_QUIT)
-			{
-				run = false;
-			}
-		}
-	}
-}
-
 int main()
 {//being main
 
@@ -502,9 +466,10 @@ int main()
 
 					ball.Render_Ball();
 					otherBall.Render_Ball();
-
-					SDL_RenderPresent(renderer);
+					
 				}
+
+				SDL_RenderPresent(renderer);
 			}
 
 
