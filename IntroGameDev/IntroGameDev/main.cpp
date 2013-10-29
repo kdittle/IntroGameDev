@@ -27,9 +27,98 @@ SDL_Surface* screenSurface = NULL;
 SDL_Surface* backgroundImage = NULL;
 SDL_Surface* ballImage = NULL;
 
+class Timer
+{
+private:
+	Uint32 mstartTicks;
+	Uint32 mpausedTicks;
+
+	bool mpaused;
+	bool started;
+
+public:
+	Timer();
+
+	void start();
+	void stop();
+	void pause();
+	void unpause();
+
+	Uint32 get_ticks();
+
+	bool is_started();
+	bool is_paused();
+};
+
 struct Circle
 {
 	int x, y, r;
+};
+
+struct vector2f
+{
+	float x;
+	float y;
+
+	vector2f()
+	{
+		x = 0;
+		y = 0;
+	}
+
+	vector2f(float x_, float y_)
+	{
+		x = x_;
+		y = y_;
+	}
+
+	void add(vector2f v)
+	{
+		y = y + v.y;
+		x = x + v.x;
+	}
+
+	void subtract(vector2f v)
+	{
+		y = y - v.y;
+		x = x - v.x;
+	}
+
+	void negate()
+	{
+		x = x * -1;
+		y = y * -1;
+	}
+
+	void negate_x()
+	{
+		x = x * -1;
+	}
+
+	void negate_y()
+	{
+		y = y * -1;
+	}
+
+	void divide(float n)
+	{
+		x = x / n;
+		y = y / n;
+	}
+
+	float mag()
+	{
+		return std::sqrt(x*x + y*y);
+	}
+
+	void normalize()
+	{
+		float m = mag();
+		if( m != 0)
+		{
+			divide(m);
+		}
+	}
 };
 
 class LTexture
@@ -42,6 +131,9 @@ public:
 
 	void free();
 	void Render(int x, int y, SDL_Rect* clip = NULL, double angle = 0.0, SDL_Point* center = NULL,
+		SDL_RendererFlip = SDL_FLIP_NONE);
+
+	void VRender(vector2f location, SDL_Rect* clip = NULL, double angle = 0.0, SDL_Point* center = NULL,
 		SDL_RendererFlip = SDL_FLIP_NONE);
 
 	int getWidth();
@@ -67,22 +159,31 @@ public:
 	static const int BALL_HEIGHT = 20;
 
 	Ball(int x, int y);
+	Ball(vector2f location, vector2f velocity);
 
 	void HandleInput(SDL_Event& e);
 
 	void move(SDL_Rect& square, Circle& circle);
+	void v_move();//SDL_Rect& square, Circle& circle);
 
 	void Render_Ball();
+	void V_Rend_Ball();
 
 	Circle& getCollider();
+	Circle& v_getCollider();
 
 private:
 	int mPosX, mPosY;
+	vector2f mPosition;
+
 	int mVelX, mVelY;
+	vector2f mVelocity;
 
 	Circle mCollider;
+	Circle v_mCollider;
 
 	void shiftColliders();
+	void v_shiftColliders();
 
 };
 
@@ -150,6 +251,19 @@ void LTexture::free()
 	}
 }
 
+void LTexture::VRender(vector2f location, SDL_Rect* clip, double angle, SDL_Point* center, SDL_RendererFlip flip)
+{
+	SDL_Rect renderQuad = {location.x, location.y, mWidth, mHeight};
+
+	if(clip != NULL)
+	{
+		renderQuad.w = clip->w;
+		renderQuad.h = clip->h;
+	}
+
+	SDL_RenderCopyEx(renderer, mTexture, clip, &renderQuad, angle, center, flip);
+}
+
 void LTexture::Render(int xPos, int yPos, SDL_Rect* clip, double angle, SDL_Point* center, SDL_RendererFlip flip)
 {
 	SDL_Rect renderQuad = {xPos, yPos, mWidth, mHeight};
@@ -184,6 +298,18 @@ Ball::Ball(int x, int y)
 	mVelY = 0;
 
 	shiftColliders();
+}
+
+Ball::Ball(vector2f location, vector2f velocity)
+{
+	mPosition = location;
+	mVelocity = velocity;
+
+	v_mCollider.r = BALL_WIDTH / 2;
+
+	//mVelocity = vector2f(0, 0);
+
+	v_shiftColliders();
 }
 
 void Ball::HandleInput(SDL_Event& e)
@@ -242,9 +368,51 @@ void Ball::move(SDL_Rect& square, Circle& circle)
 	}
 }
 
+void Ball::v_move()//SDL_Rect& square, Circle& circle)
+{
+	Timer timer;
+	float timeKeeper = 0;
+	float deltaTime = 0;
+	float preTime = 0;
+
+	timeKeeper = timer.get_ticks();
+	deltaTime = (timeKeeper - preTime) / 1000;
+	preTime = timeKeeper;
+
+
+	mPosition.add(mVelocity);
+	v_shiftColliders();
+
+	std::cout << mPosition.x << ", " << mPosition.y << std::endl;
+
+	if((mPosition.x  < 0) || (mPosition.x + BALL_WIDTH) > WINDOW_WIDTH)
+	{
+		mVelocity.negate_x();
+		v_shiftColliders();
+	}
+
+	if((mPosition.y < 0) || (mPosition.y + BALL_WIDTH) > WINDOW_HEIGHT)
+	{
+		mVelocity.negate_y();
+		v_shiftColliders();
+	}
+
+	//if(checkCollision(v_mCollider, square) || checkCollision(v_mCollider, circle))
+	//{
+	//	mVelocity.negate_x();
+	//	mPosition.add(mVelocity);
+	//	v_shiftColliders();
+	//}
+}
+
 void Ball::Render_Ball()
 {
 	ballTexture.Render(mPosX - mCollider.r, mPosY - mCollider.r);
+}
+
+void Ball::V_Rend_Ball()
+{
+	ballTexture.VRender(mPosition);
 }
 
 Circle& Ball::getCollider()
@@ -252,10 +420,21 @@ Circle& Ball::getCollider()
 	return mCollider;
 }
 
+Circle& Ball::v_getCollider()
+{
+	return v_mCollider;
+}
+
 void Ball::shiftColliders()
 {
 	mCollider.x = mPosX;
 	mCollider.y = mPosY;
+}
+
+void Ball::v_shiftColliders()
+{
+	v_mCollider.x = mPosition.x;
+	v_mCollider.y = mPosition.y;
 }
 
 bool checkCollision(Circle& objA, Circle& objB)
@@ -405,6 +584,66 @@ void Close()
 	SDL_Quit();
 }
 
+bool InputHandler(bool run)
+{
+	SDL_Event event;
+
+	run = true;
+
+	while(SDL_PollEvent(&event) != 0)
+	{
+		if(event.type == SDL_QUIT)
+		{
+			run = false;
+		}
+
+		if(event.type == SDL_KEYDOWN)
+		{
+			switch(event.key.keysym.sym)
+			{
+			case SDLK_ESCAPE:
+				run = false;
+				break;
+			}
+		}
+	}
+
+	return run;
+}
+
+Timer::Timer()
+{
+	mstartTicks = 0;
+	mpausedTicks = 0;
+	mpaused = false;
+	started = false;
+}
+
+void Timer::start()
+{
+	started = true;
+	mpaused = false;
+
+}
+Uint32 Timer::get_ticks()
+{
+	Uint32 time = 0;
+
+	if(started == true)
+	{
+		if(mpaused)
+		{
+			time = mpausedTicks;
+		}
+		else
+		{
+			time = SDL_GetTicks() - mstartTicks;
+		}
+	}
+
+	return time;;
+}
+
 int main()
 {//being main
 
@@ -424,7 +663,10 @@ int main()
 
 			SDL_Event event;
 
-			Ball ball (WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
+			vector2f location = vector2f (WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
+			vector2f velocity = vector2f(.25, .25);
+
+			Ball ball(location, velocity);
 			Ball otherBall(WINDOW_WIDTH / 4, WINDOW_HEIGHT / 4);
 
 			SDL_Rect wall;
@@ -434,42 +676,24 @@ int main()
 			wall.w = 200;
 			wall.h = 20;
 
-			while(run)
+			while(InputHandler(run))
 			{
-				while(SDL_PollEvent(&event) != 0)
-				{
-					if(event.type == SDL_QUIT)
-					{
-						run = false;
-					}
 
-					if(event.type == SDL_KEYDOWN)
-					{
-						switch(event.key.keysym.sym)
-						{
-						case SDLK_ESCAPE:
-							run = false;
-							break;
-						}
-					}
+				ball.v_move();//wall, otherBall.getCollider());
 
-					ball.HandleInput(event);
+				SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
+				SDL_RenderClear(renderer);
 
-					ball.move(wall, otherBall.getCollider());
-
-					SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
-					SDL_RenderClear(renderer);
-
-					SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xFF);
-					SDL_RenderDrawRect(renderer, &wall);
+				/*SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xFF);
+				SDL_RenderDrawRect(renderer, &wall);*/
 
 
-					ball.Render_Ball();
-					otherBall.Render_Ball();
-					
-				}
+				ball.V_Rend_Ball();
+				//otherBall.Render_Ball();
 
 				SDL_RenderPresent(renderer);
+
+
 			}
 
 
