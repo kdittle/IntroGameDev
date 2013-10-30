@@ -27,29 +27,6 @@ SDL_Surface* screenSurface = NULL;
 SDL_Surface* backgroundImage = NULL;
 SDL_Surface* ballImage = NULL;
 
-class Timer
-{
-private:
-	Uint32 mstartTicks;
-	Uint32 mpausedTicks;
-
-	bool mpaused;
-	bool started;
-
-public:
-	Timer();
-
-	void start();
-	void stop();
-	void pause();
-	void unpause();
-
-	Uint32 get_ticks();
-
-	bool is_started();
-	bool is_paused();
-};
-
 struct Circle
 {
 	int x, y, r;
@@ -164,7 +141,7 @@ public:
 	void HandleInput(SDL_Event& e);
 
 	void move(SDL_Rect& square, Circle& circle);
-	void v_move();//SDL_Rect& square, Circle& circle);
+	void v_move(SDL_Rect& square, Circle& circle);
 
 	void Render_Ball();
 	void V_Rend_Ball();
@@ -307,8 +284,6 @@ Ball::Ball(vector2f location, vector2f velocity)
 
 	v_mCollider.r = BALL_WIDTH / 2;
 
-	//mVelocity = vector2f(0, 0);
-
 	v_shiftColliders();
 }
 
@@ -368,17 +343,8 @@ void Ball::move(SDL_Rect& square, Circle& circle)
 	}
 }
 
-void Ball::v_move()//SDL_Rect& square, Circle& circle)
+void Ball::v_move(SDL_Rect& square, Circle& circle)
 {
-	Timer timer;
-	float timeKeeper = 0;
-	float deltaTime = 0;
-	float preTime = 0;
-
-	timeKeeper = timer.get_ticks();
-	deltaTime = (timeKeeper - preTime) / 1000;
-	preTime = timeKeeper;
-
 
 	mPosition.add(mVelocity);
 	v_shiftColliders();
@@ -397,12 +363,12 @@ void Ball::v_move()//SDL_Rect& square, Circle& circle)
 		v_shiftColliders();
 	}
 
-	//if(checkCollision(v_mCollider, square) || checkCollision(v_mCollider, circle))
-	//{
-	//	mVelocity.negate_x();
-	//	mPosition.add(mVelocity);
-	//	v_shiftColliders();
-	//}
+	if(checkCollision(v_mCollider, square) || checkCollision(v_mCollider, circle))
+	{
+		mVelocity.negate_y();
+		v_shiftColliders();
+	}
+
 }
 
 void Ball::Render_Ball()
@@ -433,15 +399,17 @@ void Ball::shiftColliders()
 
 void Ball::v_shiftColliders()
 {
-	v_mCollider.x = mPosition.x;
-	v_mCollider.y = mPosition.y;
+	v_mCollider.x = mPosition.x + v_mCollider.r;
+	v_mCollider.y = mPosition.y + v_mCollider.r;
 }
 
 bool checkCollision(Circle& objA, Circle& objB)
 {
+	//Total of radi
 	int tRadiusSquared = objA.r + objB.r;
 	tRadiusSquared = tRadiusSquared * tRadiusSquared;
 
+	//Distance of centers is less than sum of radi
 	if(distanceSquared(objA.x, objA.y, objB.x, objB.y) < (tRadiusSquared))
 	{
 		return true;
@@ -453,37 +421,37 @@ bool checkCollision(Circle& objA, Circle& objB)
 bool checkCollision(Circle& objA, SDL_Rect& objB)
 {
 	//Closest point in collision box
-	int cX, cY;
+	int closestX, closestY;
 
 	//Closest x offset
 	if(objA.x < objB.x)
 	{
-		cX = objB.x;
+		closestX = objB.x;
 	}
 	else if (objA.x > (objB.x + objB.w))
 	{
-		cX = objB.x + objB.w;
+		closestX = objB.x + objB.w;
 	}
 	else
 	{
-		cX = objA.x;
+		closestX = objA.x;
 	}
 
 	//Closest y offset
 	if(objA.y < objB.y)
 	{
-		cY = objB.y;
+		closestY = objB.y;
 	}
 	else if (objA.y > (objB.y + objB.h))
 	{
-		cY = objB.y + objB.h;
+		closestY = objB.y + objB.h;
 	}
 	else
 	{
-		cY = objA.y;
+		closestY = objA.y;
 	}
 
-	if(distanceSquared(objA.x, objA.y, cX, cY) < objA.r * objA.r)
+	if(distanceSquared(objA.x, objA.y, closestX, closestY) < (objA.r * objA.r))
 	{
 		return true;
 	}
@@ -611,39 +579,6 @@ bool InputHandler(bool run)
 	return run;
 }
 
-Timer::Timer()
-{
-	mstartTicks = 0;
-	mpausedTicks = 0;
-	mpaused = false;
-	started = false;
-}
-
-void Timer::start()
-{
-	started = true;
-	mpaused = false;
-
-}
-Uint32 Timer::get_ticks()
-{
-	Uint32 time = 0;
-
-	if(started == true)
-	{
-		if(mpaused)
-		{
-			time = mpausedTicks;
-		}
-		else
-		{
-			time = SDL_GetTicks() - mstartTicks;
-		}
-	}
-
-	return time;;
-}
-
 int main()
 {//being main
 
@@ -664,32 +599,37 @@ int main()
 			SDL_Event event;
 
 			vector2f location = vector2f (WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
+			vector2f oLocation = vector2f (WINDOW_WIDTH / 3, WINDOW_HEIGHT / 3);
 			vector2f velocity = vector2f(.25, .25);
+			vector2f oVelocity = vector2f(.25, -.25);
 
 			Ball ball(location, velocity);
+			Ball ball2(oLocation, oVelocity);
 			Ball otherBall(WINDOW_WIDTH / 4, WINDOW_HEIGHT / 4);
 
 			SDL_Rect wall;
 
 			wall.x = 500;
 			wall.y = 150;
-			wall.w = 200;
-			wall.h = 20;
+			wall.w = 250;
+			wall.h = 200;
 
 			while(InputHandler(run))
 			{
 
-				ball.v_move();//wall, otherBall.getCollider());
+				ball.v_move(wall, otherBall.getCollider());
+				ball2.v_move(wall, otherBall.getCollider());
 
 				SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
 				SDL_RenderClear(renderer);
 
-				/*SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xFF);
-				SDL_RenderDrawRect(renderer, &wall);*/
+				SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xFF);
+				SDL_RenderDrawRect(renderer, &wall);
 
 
 				ball.V_Rend_Ball();
-				//otherBall.Render_Ball();
+				ball2.V_Rend_Ball();
+				otherBall.Render_Ball();
 
 				SDL_RenderPresent(renderer);
 
