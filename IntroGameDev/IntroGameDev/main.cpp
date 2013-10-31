@@ -363,7 +363,27 @@ void Ball::v_move(SDL_Rect& square, Circle& circle)
 		v_shiftColliders();
 	}
 
-	if(checkCollision(v_mCollider, square) || checkCollision(v_mCollider, circle))
+	//BOX COLLISION.
+	//Proper negation depending on the side of the box hit.
+	if(mPosition.x + BALL_WIDTH / 2 < square.x && checkCollision(v_mCollider, square))
+	{
+		mVelocity.negate_x();
+		v_shiftColliders();
+	}
+
+	if(mPosition.x - BALL_WIDTH / 2 > square.x && checkCollision(v_mCollider, square))
+	{
+		mVelocity.negate_y();
+		v_shiftColliders();
+	}
+
+	if(mPosition.y - BALL_HEIGHT / 2 > square.y + square.h && checkCollision(v_mCollider, square))
+	{
+		mVelocity.negate_x();
+		v_shiftColliders();
+	}
+
+	if(mPosition.y + BALL_HEIGHT / 2 < square.y	&& checkCollision(v_mCollider, square))
 	{
 		mVelocity.negate_y();
 		v_shiftColliders();
